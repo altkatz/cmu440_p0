@@ -26,8 +26,24 @@ func (kvs *keyValueServer) Start(port int) error {
 	// TODO: implement this!
 	var err error
 	kvs.listener, err = net.Listen("tcp", ":"+strconv.Itoa(port))
-	fmt.Println("start error", err)
+	if err == nil {
+		serve(kvs)
+	} else {
+		fmt.Println("start error", err)
+	}
 	return err
+}
+func serve(kvs *keyValueServer) {
+	listener := kvs.listener
+	for {
+		conn, err := listener.Accept()
+		if err == nil {
+			go serveConn(conn)
+		}
+	}
+}
+func serveConn(conn net.Conn) {
+
 }
 
 func (kvs *keyValueServer) Close() {
