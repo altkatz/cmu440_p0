@@ -19,6 +19,7 @@ var pServer *keyValueServer
 func New() KeyValueServer {
 	// TODO: implement this!
 	pServer = &keyValueServer{}
+	init_db()
 	return pServer
 }
 
@@ -43,7 +44,17 @@ func serve(kvs *keyValueServer) {
 	}
 }
 func serveConn(conn net.Conn) {
-
+	var buffer []byte
+	for {
+		conn.Read(buffer)
+		cmd, key := getCommand(buffer)
+		if cmd == "get" {
+			kvstore.get(key)
+		} else if cmd == "put" {
+			value := getValue()
+			kvstore.put(key, value)
+		}
+	}
 }
 
 func (kvs *keyValueServer) Close() {
