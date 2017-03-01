@@ -3,6 +3,7 @@
 package p0
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"strconv"
@@ -44,10 +45,10 @@ func serve(kvs *keyValueServer) {
 	}
 }
 func serveConn(conn net.Conn) {
-	var buffer []byte
-	for {
-		conn.Read(buffer)
-		cmd, key := getCommand(buffer)
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		cmd := line[0:3]
 		if cmd == "get" {
 			kvstore.get(key)
 		} else if cmd == "put" {
