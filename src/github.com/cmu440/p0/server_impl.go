@@ -9,6 +9,9 @@ import (
 	"strconv"
 )
 
+var countChannel chan bool = make(chan bool)
+var clientCount int = 0
+
 type keyValueServer struct {
 	// TODO: implement this!
 	listener net.Listener
@@ -24,38 +27,78 @@ func New() KeyValueServer {
 	return pServer
 }
 
+func incrCount() {
+	for {
+		incr := <-countChannel
+		if incr {
+			clientCount += 1
+		} else {
+			clientCount -= 1
+		}
+	}
+}
+
 func (kvs *keyValueServer) Start(port int) error {
 	// TODO: implement this!
 	var err error
 	kvs.listener, err = net.Listen("tcp", ":"+strconv.Itoa(port))
+	go incrCount()
 	if err == nil {
-		serve(kvs)
+		go accpetor(kvs)
 	} else {
 		fmt.Println("start error", err)
 	}
 	return err
 }
-func serve(kvs *keyValueServer) {
+func accpetor(kvs *keyValueServer) {
 	listener := kvs.listener
 	for {
 		conn, err := listener.Accept()
 		if err == nil {
+			countChannel <- true
 			go serveConn(conn)
 		}
 	}
+}
+
+var getCmd = []byte("get")
+var putCmd = []byte("put")
+
+func testEq(a, b []byte) bool {
+
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }
 func serveConn(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		cmd := line[0:3]
-		if cmd == "get" {
-			kvstore.get(key)
-		} else if cmd == "put" {
-			value := getValue()
-			kvstore.put(key, value)
+		if testEq(cmd, getCmd) {
+			fmt.Println("is get")
+		} else if testEq(cmd, putCmd) {
+			fmt.Println("is put")
 		}
 	}
+	countChannel <- false
+	conn.Close()
 }
 
 func (kvs *keyValueServer) Close() {
@@ -63,8 +106,7 @@ func (kvs *keyValueServer) Close() {
 }
 
 func (kvs *keyValueServer) Count() int {
-	// TODO: implement this!
-	return -1
+	return clientCount
 }
 
 // TODO: add additional methods/functions below!
