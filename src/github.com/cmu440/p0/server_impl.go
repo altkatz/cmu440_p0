@@ -4,6 +4,7 @@ package p0
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"net"
 	"strconv"
@@ -63,6 +64,7 @@ func accpetor(kvs *keyValueServer) {
 
 var getCmd = []byte("get")
 var putCmd = []byte("put")
+var keySep = []byte(",")
 
 func testEq(a, b []byte) bool {
 
@@ -90,11 +92,14 @@ func serveConn(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		cmd := line[0:3]
-		if testEq(cmd, getCmd) {
-			fmt.Println("is get")
-		} else if testEq(cmd, putCmd) {
-			fmt.Println("is put")
+		sliceOfSlice := bytes.Split(line, keySep)
+		if testEq(sliceOfSlice[0], getCmd) {
+			// fmt.Println("is get")
+			// fmt.Println("get,key", sliceOfSlice[1])
+		} else if testEq(sliceOfSlice[0], putCmd) {
+			// fmt.Println("is put")
+			// fmt.Println("put,key", sliceOfSlice[1])
+			// fmt.Println("put,value", sliceOfSlice[2])
 		}
 	}
 	countChannel <- false
