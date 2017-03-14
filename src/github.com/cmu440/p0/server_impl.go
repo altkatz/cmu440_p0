@@ -12,10 +12,12 @@ import (
 
 var countChannel chan bool = make(chan bool)
 var clientCount int = 0
+var kvChan chan []byte = make(chan []byte)
 
 type keyValueServer struct {
 	// TODO: implement this!
 	listener net.Listener
+	clients  []net.Conn
 }
 
 var pServer *keyValueServer
@@ -53,10 +55,12 @@ func (kvs *keyValueServer) Start(port int) error {
 }
 func accpetor(kvs *keyValueServer) {
 	listener := kvs.listener
+	go processData(kvs)
 	for {
 		conn, err := listener.Accept()
 		if err == nil {
 			countChannel <- true
+			kvs.clients = append(kvs.clients, conn)
 			go serveConn(conn)
 		}
 	}
@@ -92,18 +96,31 @@ func serveConn(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		sliceOfSlice := bytes.Split(line, keySep)
-		if testEq(sliceOfSlice[0], getCmd) {
-			// fmt.Println("is get")
-			// fmt.Println("get,key", sliceOfSlice[1])
-		} else if testEq(sliceOfSlice[0], putCmd) {
-			// fmt.Println("is put")
-			// fmt.Println("put,key", sliceOfSlice[1])
-			// fmt.Println("put,value", sliceOfSlice[2])
-		}
+		kvChan <- line
 	}
 	countChannel <- false
 	conn.Close()
+}
+func processData(kvs *keyValueServer) {
+	for {
+		line := <-kvChan
+		sliceOfSlice := bytes.Split(line, keySep)
+		cmd := sliceOfSlice[0]
+		key := string(sliceOfSlice[1])
+		if testEq(cmd, getCmd) {
+			var returnData []byte = get(key)
+			broadcast(returnData, kvs.clients)
+		} else if testEq(cmd, putCmd) {
+			value := sliceOfSlice[2]
+			put(key, value)
+		}
+	}
+}
+func broadcast(data []byte, conns []net.Conn) {
+	for _, conn := range conns {
+		conn.Write(data)
+		conn.Write([]byte("\n"))
+	}
 }
 
 func (kvs *keyValueServer) Close() {
