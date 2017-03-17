@@ -106,10 +106,12 @@ func processData(kvs *keyValueServer) {
 		line := <-kvChan
 		sliceOfSlice := bytes.Split(line, keySep)
 		cmd := sliceOfSlice[0]
-		key := string(sliceOfSlice[1])
+		fmt.Println(string(line))
+		keyBin := sliceOfSlice[1]
+		key := string(keyBin)
 		if testEq(cmd, getCmd) {
 			var returnData []byte = get(key)
-			broadcast(returnData, kvs.clients)
+			broadcast(append(append(keyBin, keySep...), returnData...), kvs.clients)
 		} else if testEq(cmd, putCmd) {
 			value := sliceOfSlice[2]
 			put(key, value)
