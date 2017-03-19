@@ -96,7 +96,9 @@ func serveConn(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		kvChan <- line
+		line1 := make([]byte, len(line))
+		copy(line1, line)
+		kvChan <- line1
 	}
 	countChannel <- false
 	conn.Close()
@@ -106,7 +108,6 @@ func processData(kvs *keyValueServer) {
 		line := <-kvChan
 		sliceOfSlice := bytes.Split(line, keySep)
 		cmd := sliceOfSlice[0]
-		fmt.Println(string(line))
 		keyBin := sliceOfSlice[1]
 		key := string(keyBin)
 		if testEq(cmd, getCmd) {
